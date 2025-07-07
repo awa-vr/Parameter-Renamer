@@ -77,10 +77,7 @@ namespace AwAVR
         {
             Core.Title(_windowTitle);
 
-            // Warning
-            EditorGUILayout.HelpBox(
-                "This tool renames parameters in the FX animator and all VRChat components on your currently selected avatar.",
-                MessageType.Warning);
+            // Beta Warning
             EditorGUILayout.HelpBox(
                 "This tool is in beta!\n\nPlease always have an up to date backup of your avatar before continuing.\nI am not responsible for broken avatars",
                 MessageType.Error);
@@ -100,7 +97,7 @@ namespace AwAVR
                 return;
 
             // Get FX Animator
-            _fx = Core.GetFXController(_avatar);
+            _fx = Core.GetAnimatorController(_avatar);
 
             if (!_fx || _fx.parameters.Length == 0)
             {
@@ -134,8 +131,17 @@ namespace AwAVR
                 _parameter.Name = _vrcParams.parameters[_parameterIndex].name;
                 GetParameterMenus();
 
-                // New parameter name
+                // New parameter name + name checking
+                var isAlreadyUsed = _vrcParams.parameters.Any(p => p.name == _newParameterName);
+
+                if (isAlreadyUsed)
+                    GUI.color = Color.red;
+
                 _newParameterName = EditorGUILayout.TextField("New parameter name", _newParameterName);
+
+                GUI.color = Color.white;
+                if (isAlreadyUsed)
+                    EditorGUILayout.HelpBox("Preset name is already used", MessageType.Error);
 
                 // Button
                 using (new EditorGUILayout.HorizontalScope())
@@ -164,19 +170,22 @@ namespace AwAVR
                     }
 
                     // Rename button
-                    if (GUILayout.Button("Rename"))
+                    using (new EditorGUI.DisabledGroupScope(isAlreadyUsed))
                     {
-                        if (string.IsNullOrWhiteSpace(_newParameterName))
+                        if (GUILayout.Button("Rename"))
                         {
-                            EditorUtility.DisplayDialog("Empty name", "New parameter name can't be empty.", "OK");
-                        }
-                        else
-                        {
-                            if (EditorUtility.DisplayDialog("Confirm",
-                                    $"Are you sure you want to rename parameter \"{_parameter.Name}\" to \"{_newParameterName}\"?",
-                                    "Yes", "No"))
+                            if (string.IsNullOrWhiteSpace(_newParameterName))
                             {
-                                Rename();
+                                EditorUtility.DisplayDialog("Empty name", "New parameter name can't be empty.", "OK");
+                            }
+                            else
+                            {
+                                if (EditorUtility.DisplayDialog("Confirm",
+                                        $"Are you sure you want to rename parameter \"{_parameter.Name}\" to \"{_newParameterName}\"?",
+                                        "Yes", "No"))
+                                {
+                                    Rename();
+                                }
                             }
                         }
                     }
@@ -239,6 +248,7 @@ namespace AwAVR
 
         private void Rename()
         {
+            // TODO: Fix undo for all
             // Define all objects
             var objectList = new Object[] { _vrcParams, _fx }.Concat(_parameter.Menus.Cast<Object>()).ToArray();
             Undo.RecordObjects(objectList, "Rename parameter");
@@ -246,8 +256,13 @@ namespace AwAVR
             // Do renaming
             RenameInVrcParametersList();
             RenameInMenus();
-            // TODO: Check in all parameters, instead of just the FX one
-            RenameInAnimator(_fx);
+            // Rename all the parameters
+            foreach (var type in System.Enum.GetValues(typeof(Core.ExpressionAnimatorType)))
+            {
+                var animator = Core.GetAnimatorController(_avatar, (Core.ExpressionAnimatorType)type);
+                if (animator)
+                    RenameInAnimator(animator);
+            }
 
             // Clean all objects
             foreach (var o in objectList)
