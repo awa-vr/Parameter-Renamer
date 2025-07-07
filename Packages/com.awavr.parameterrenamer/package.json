@@ -1,0 +1,19 @@
+{
+  "name": "com.awavr.parameterrenamer",
+  "displayName": "AwA - Parameter Renamer",
+  "version": "1.0.0-beta.1",
+  "description": "Quickly rename a parameter everywhere.\n\nRenames parameters in: VRC Menus, VRC Parameters, everything in Animators",
+  "gitDependencies": {},
+  "vpmDependencies": {
+    "com.vrchat.avatars": "3.8.0",
+    "com.awavr.core": "^1.1.0"
+  },
+  "author": {
+    "name": "AwA",
+    "email": "N/A",
+    "url": "https://github.com/awa-vr/vrc-tools"
+  },
+  "legacyFolders": {},
+  "legacyFiles": {},
+  "unity": "2022.3"
+}
