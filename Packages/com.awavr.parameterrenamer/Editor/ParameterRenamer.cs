@@ -95,11 +95,6 @@ namespace AwAVR
         {
             Core.Title(_windowTitle);
 
-            // Beta Warning
-            EditorGUILayout.HelpBox(
-                "This tool is in beta!\n\nPlease always have an up to date backup of your avatar before continuing.\nI am not responsible for broken avatars",
-                MessageType.Error);
-
             if (!RefreshAvatarInfo()) return;
 
             // Parameter renames stuffs
@@ -269,15 +264,33 @@ namespace AwAVR
 
         private void Rename()
         {
-            // TODO: Fix undo for all
-            // Define all objects
-            var objectList = new Object[] { _vrcParams, _fx }.Concat(_parameter.Menus.Cast<Object>()).ToArray();
-            Undo.RecordObjects(objectList, "Rename parameter");
+            // Define objects for undo
+            var affectedObjects = new HashSet<Object>
+            {
+                _vrcParams,
+                _fx
+            };
+
+            foreach (var menu in _parameter.Menus)
+                affectedObjects.Add(menu);
+
+            foreach (var type in Enum.GetValues(typeof(Core.ExpressionAnimatorType))
+                         .Cast<Core.ExpressionAnimatorType>())
+            {
+                var animator = Core.GetAnimatorController(_avatar, type);
+                if (animator)
+                {
+                    affectedObjects.Add(animator);
+                    CollectAnimatorObjects(animator, ref affectedObjects);
+                }
+            }
+
+            Undo.RecordObjects(affectedObjects.ToArray(), $"Rename parameter: {_parameter.Name} -> {_newParameterName}");
 
             // Do renaming
             RenameInVrcParametersList();
             RenameInMenus();
-            // Rename all the parameters
+            // Rename all the animators
             foreach (var type in System.Enum.GetValues(typeof(Core.ExpressionAnimatorType)))
             {
                 var animator = Core.GetAnimatorController(_avatar, (Core.ExpressionAnimatorType)type);
@@ -286,11 +299,68 @@ namespace AwAVR
             }
 
             // Clean all objects
-            foreach (var o in objectList)
+            foreach (var obj in affectedObjects)
+                EditorUtility.SetDirty(obj);
+
+            AssetDatabase.SaveAssets();
+        }
+
+        private void CollectAnimatorObjects(AnimatorController animator, ref HashSet<Object> affected)
+        {
+            affected.Add(animator);
+
+            foreach (var layer in animator.layers)
             {
-                Core.Cleany(o);
+                var stateMachine = layer.stateMachine;
+                affected.Add(stateMachine);
+
+                // Collect states
+                foreach (var childState in stateMachine.states)
+                {
+                    affected.Add(childState.state);
+
+                    // Behaviours
+                    foreach (var behaviour in childState.state.behaviours)
+                    {
+                        affected.Add(behaviour);
+                    }
+
+                    // Blendtrees
+                    if (childState.state.motion is BlendTree blendTree)
+                    {
+                        CollectBlendTreesRecursive(blendTree, ref affected);
+                    }
+
+                    // Transitions
+                    foreach (var transition in childState.state.transitions)
+                    {
+                        affected.Add(transition);
+                    }
+                }
+
+                // Any State transitions
+                foreach (var transition in stateMachine.anyStateTransitions)
+                {
+                    affected.Add(transition);
+                }
             }
         }
+
+        private void CollectBlendTreesRecursive(BlendTree blendTree, ref HashSet<Object> affected)
+        {
+            if (blendTree == null || affected.Contains(blendTree)) return;
+
+            affected.Add(blendTree);
+
+            foreach (var child in blendTree.children)
+            {
+                if (child.motion is BlendTree childTree)
+                {
+                    CollectBlendTreesRecursive(childTree, ref affected);
+                }
+            }
+        }
+
 
         private void RenameInVrcParametersList()
         {
