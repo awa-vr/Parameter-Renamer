@@ -140,7 +140,7 @@ namespace AwAVR
 
                 GUI.color = Color.white;
                 if (isAlreadyUsed)
-                    EditorGUILayout.HelpBox("Preset name is already used", MessageType.Error);
+                    EditorGUILayout.HelpBox("Parameter name is already used", MessageType.Error);
 
                 // Button
                 using (new EditorGUILayout.HorizontalScope())
