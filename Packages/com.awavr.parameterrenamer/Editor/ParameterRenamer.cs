@@ -43,7 +43,7 @@ namespace AwAVR
         #region Window
 
         [MenuItem("Tools/AwA/Parameter Renamer", false, -100)]
-        public static void ShowWindow()
+        static void ShowWindow()
         {
             var window = GetWindow<ParameterRenamer>(_windowTitle);
             window.titleContent = new GUIContent(
@@ -51,6 +51,23 @@ namespace AwAVR
                 text: _windowTitle,
                 tooltip: "Rename a parameter everywhere"
             );
+        }
+
+        public static void Show(string parameterName = "", VRCAvatarDescriptor avatar = null)
+        {
+            ShowWindow();
+            var window = GetWindow<ParameterRenamer>(_windowTitle);
+
+            if (avatar)
+                window._avatar = avatar;
+            window.RefreshAvatarInfo();
+
+            // Set parameter if given
+            if (string.IsNullOrWhiteSpace(parameterName) || window._vrcParams == null) return;
+
+            var index = window._vrcParams.parameters.ToList().FindIndex(p => p.name == parameterName);
+            if (index >= 0)
+                window._parameterIndex = index;
         }
 
         public void OnEnable()
@@ -70,6 +87,8 @@ namespace AwAVR
                 _avatars.Clear();
                 return;
             }
+
+            RefreshAvatarInfo();
         }
 
         public void OnGUI()
@@ -81,40 +100,7 @@ namespace AwAVR
                 "This tool is in beta!\n\nPlease always have an up to date backup of your avatar before continuing.\nI am not responsible for broken avatars",
                 MessageType.Error);
 
-            // Avatar
-            Core.GetAvatar(ref _avatar, ref _avatars);
-            if (!_avatar)
-            {
-                EditorGUILayout.HelpBox("Please select an avatar.", MessageType.Error);
-                return;
-            }
-
-            // Get avatar parameters
-            if (_avatar.expressionParameters)
-                _vrcParams = _avatar.expressionParameters;
-            else
-                return;
-
-            // Get FX Animator
-            _fx = Core.GetAnimatorController(_avatar);
-
-            if (!_fx || _fx.parameters.Length == 0)
-            {
-                EditorGUILayout.HelpBox("Can't find an FX animator on your avatar. Please add one.", MessageType.Error);
-                return;
-            }
-
-            // Get main menu
-            _vrcMainMenu = _avatar.expressionsMenu;
-            if (!_vrcMainMenu)
-            {
-                EditorGUILayout.HelpBox("Can't find a main menu on your avatar. Please add one.", MessageType.Error);
-                return;
-            }
-
-            // Get all menus
-            _menuList.Clear();
-            GetSubMenus(_vrcMainMenu);
+            if (!RefreshAvatarInfo()) return;
 
             // Parameter renames stuffs
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
@@ -123,7 +109,9 @@ namespace AwAVR
                 List<string> paramNames = new List<string>();
                 foreach (var parameter in _vrcParams.parameters)
                 {
-                    paramNames.Add(parameter.name);
+                    paramNames.Add(_parameterIndex == paramNames.Count
+                        ? parameter.name
+                        : $"{parameter.name} [{parameter.valueType.ToString().ToLower()}]");
                 }
 
                 _parameterIndex = EditorGUILayout.Popup("Parameter to rename", _parameterIndex, paramNames.ToArray());
@@ -132,15 +120,9 @@ namespace AwAVR
 
                 // New parameter name + name checking
                 var isAlreadyUsed = _vrcParams.parameters.Any(p => p.name == _newParameterName);
-
-                if (isAlreadyUsed)
-                    GUI.color = Color.red;
-
                 _newParameterName = EditorGUILayout.TextField("New parameter name", _newParameterName);
-
-                GUI.color = Color.white;
                 if (isAlreadyUsed)
-                    EditorGUILayout.HelpBox("Parameter name is already used", MessageType.Error);
+                    EditorGUILayout.HelpBox("New parameter name is already used", MessageType.Error);
 
                 // Button
                 using (new EditorGUILayout.HorizontalScope())
@@ -190,6 +172,46 @@ namespace AwAVR
                     }
                 }
             }
+        }
+
+        bool RefreshAvatarInfo()
+        {
+            // Avatar
+            Core.GetAvatar(ref _avatar, ref _avatars);
+            if (!_avatar)
+            {
+                EditorGUILayout.HelpBox("Please select an avatar.", MessageType.Error);
+                return false;
+            }
+
+            // Get avatar parameters
+            if (_avatar.expressionParameters)
+                _vrcParams = _avatar.expressionParameters;
+            else
+                return false;
+
+            // Get FX Animator
+            _fx = Core.GetAnimatorController(_avatar);
+
+            if (!_fx || _fx.parameters.Length == 0)
+            {
+                EditorGUILayout.HelpBox("Can't find an FX animator on your avatar. Please add one.", MessageType.Error);
+                return false;
+            }
+
+            // Get main menu
+            _vrcMainMenu = _avatar.expressionsMenu;
+            if (!_vrcMainMenu)
+            {
+                EditorGUILayout.HelpBox("Can't find a main menu on your avatar. Please add one.", MessageType.Error);
+                return false;
+            }
+
+            // Get all menus
+            _menuList.Clear();
+            GetSubMenus(_vrcMainMenu);
+
+            return true;
         }
 
         #endregion
