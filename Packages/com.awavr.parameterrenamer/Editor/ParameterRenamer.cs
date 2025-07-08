@@ -307,7 +307,6 @@ namespace AwAVR
         {
             RenameInAnimatorParameters(ref animator);
 
-            // foreach (var layer in animator.layers)
             for (int i = 0; i < animator.layers.Length; i++)
             {
                 var layer = animator.layers[i];
@@ -342,7 +341,7 @@ namespace AwAVR
 
         private void RenameInLayer(ref AnimatorControllerLayer layer)
         {
-            // foreach (var state in layer.stateMachine.states)
+            // States
             for (int i = 0; i < layer.stateMachine.states.Length; i++)
             {
                 var state = layer.stateMachine.states[i];
@@ -355,6 +354,9 @@ namespace AwAVR
                     RenameInBlendTree(ref blendTree);
                 }
             }
+
+            // Any State
+            RenameInAnyState(ref layer);
         }
 
         private void RenameInStateBehaviour(ref ChildAnimatorState state)
@@ -405,6 +407,23 @@ namespace AwAVR
                 {
                     if (conditions[i].parameter == _parameter.Name)
                         conditions[i].parameter = _newParameterName;
+                }
+
+                transition.conditions = conditions;
+            }
+        }
+
+        private void RenameInAnyState(ref AnimatorControllerLayer layer)
+        {
+            for (var i = 0; i < layer.stateMachine.anyStateTransitions.Length; i++)
+            {
+                var transition = layer.stateMachine.anyStateTransitions[i];
+                AnimatorCondition[] conditions = transition.conditions;
+
+                for (var j = 0; j < conditions.Length; j++)
+                {
+                    if (conditions[j].parameter == _parameter.Name)
+                        conditions[j].parameter = _newParameterName;
                 }
 
                 transition.conditions = conditions;
