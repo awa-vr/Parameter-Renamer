@@ -37,6 +37,7 @@ namespace AwAVR
         private int _parameterIndex = 0;
         private string _newParameterName = "";
         private Parameter _parameter = new Parameter();
+        private bool _autoRename = false;
 
         #endregion
 
@@ -53,7 +54,8 @@ namespace AwAVR
             );
         }
 
-        public static void Show(string parameterName = "", VRCAvatarDescriptor avatar = null)
+        public static void Show(string parameterName = "", VRCAvatarDescriptor avatar = null,
+            string newParameterName = "", bool autoRename = false)
         {
             ShowWindow();
             var window = GetWindow<ParameterRenamer>(_windowTitle);
@@ -68,7 +70,15 @@ namespace AwAVR
             var index = window._vrcParams.parameters.ToList().FindIndex(p => p.name == parameterName);
             if (index >= 0)
                 window._parameterIndex = index;
+
+            // Set new parameter name
+            window._newParameterName = newParameterName;
+
+            // Set auto rename
+            window._autoRename = autoRename;
         }
+
+        // public static void
 
         public void OnEnable()
         {
@@ -165,6 +175,14 @@ namespace AwAVR
                             }
                         }
                     }
+                }
+
+                // Auto Rename
+                if (_autoRename)
+                {
+                    Rename();
+                    _autoRename = false;
+                    this.Close();
                 }
             }
         }
@@ -285,7 +303,8 @@ namespace AwAVR
                 }
             }
 
-            Undo.RecordObjects(affectedObjects.ToArray(), $"Rename parameter: {_parameter.Name} -> {_newParameterName}");
+            Undo.RecordObjects(affectedObjects.ToArray(),
+                $"Rename parameter: {_parameter.Name} -> {_newParameterName}");
 
             // Do renaming
             RenameInVrcParametersList();
@@ -299,10 +318,7 @@ namespace AwAVR
             }
 
             // Clean all objects
-            foreach (var obj in affectedObjects)
-                EditorUtility.SetDirty(obj);
-
-            AssetDatabase.SaveAssets();
+            Core.CleanObjects(affectedObjects.ToArray());
         }
 
         private void CollectAnimatorObjects(AnimatorController animator, ref HashSet<Object> affected)
@@ -360,7 +376,6 @@ namespace AwAVR
                 }
             }
         }
-
 
         private void RenameInVrcParametersList()
         {
