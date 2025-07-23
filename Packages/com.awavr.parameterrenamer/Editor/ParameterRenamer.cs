@@ -475,9 +475,10 @@ namespace AwAVR
                     foreach (var param in driver.parameters)
                     {
                         if (param.name == _parameter.Name)
-                        {
                             param.name = _newParameterName;
-                        }
+
+                        if (param.source == _parameter.Name)
+                            param.source = _newParameterName;
                     }
                 }
             }
