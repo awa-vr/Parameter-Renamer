@@ -7,6 +7,7 @@ using UnityEngine;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
 using VRC.SDK3.Dynamics.Contact.Components;
+using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.SDKBase;
 using Object = UnityEngine.Object;
 
@@ -265,10 +266,16 @@ namespace AwAVR {
                 }
             }
 
-            var contactsReceivers = _avatar.GetComponentsInChildren<VRCContactReceiver>();
+            var contactsReceivers = _avatar.GetComponentsInChildren<VRCContactReceiver>(includeInactive: true);
             foreach (var vrcContactReceiver in contactsReceivers) {
                 affectedObjects.Add(vrcContactReceiver);
             }
+
+            // TODO: physbones
+            // var physBones = _avatar.GetComponentsInChildren<VRCPhysBone>();
+            // foreach (var vrcPhysBone in physBones) {
+            //     affectedObjects.Add(vrcPhysBone);
+            // }
 
             Undo.RecordObjects(affectedObjects.ToArray(),
                 $"Rename parameter: {_parameter.Name} -> {_newParameterName}");
