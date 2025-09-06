@@ -433,6 +433,10 @@ namespace AwAVR {
                             param.source = _newParameterName;
                     }
                 }
+                else if (behaviour is VRC_AnimatorPlayAudio playAudio) {
+                    if (playAudio.ParameterName == _parameter.Name)
+                        playAudio.ParameterName = _newParameterName;
+                }
             }
         }
 
