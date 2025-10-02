@@ -1,7 +1,7 @@
 {
   "name": "com.awavr.parameterrenamer",
   "displayName": "AwA - Parameter Renamer",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Quickly rename a parameter everywhere. Renames parameters in: VRC Menus, VRC Parameters, everything in Animators",
   "gitDependencies": {},
   "vpmDependencies": {

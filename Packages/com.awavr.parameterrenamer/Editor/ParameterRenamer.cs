@@ -36,6 +36,7 @@ namespace AwAVR {
         private string _newParameterName = "";
         private Parameter _parameter = new Parameter();
         private bool _autoRename = false;
+        private Action _runAfterRenameFunction = null;
 
         #endregion
 
@@ -52,7 +53,7 @@ namespace AwAVR {
         }
 
         public static void Show(string parameterName = "", VRCAvatarDescriptor avatar = null,
-            string newParameterName = "", bool autoRename = false) {
+            string newParameterName = "", bool autoRename = false, Action runAfterRenameFunction = null) {
             ShowWindow();
             var window = GetWindow<ParameterRenamer>(_windowTitle);
 
@@ -67,11 +68,10 @@ namespace AwAVR {
             if (index >= 0)
                 window._parameterIndex = index;
 
-            // Set new parameter name
+            window._parameter.Name = string.Empty;
             window._newParameterName = newParameterName;
-
-            // Set auto rename
             window._autoRename = autoRename;
+            window._runAfterRenameFunction = runAfterRenameFunction;
         }
 
         public void OnEnable() {
@@ -112,6 +112,10 @@ namespace AwAVR {
                 }
 
                 _parameterIndex = EditorGUILayout.Popup("Parameter to rename", _parameterIndex, paramNames.ToArray());
+                if (_parameter.Name != _vrcParams.parameters[_parameterIndex].name && !string.IsNullOrWhiteSpace(_parameter.Name)) {
+                    _runAfterRenameFunction = null;
+                }
+
                 _parameter.Name = _vrcParams.parameters[_parameterIndex].name;
                 GetParameterMenus();
 
@@ -294,6 +298,14 @@ namespace AwAVR {
 
             // Clean all objects
             Core.CleanObjects(affectedObjects.ToArray());
+
+            // Clear selected input fields
+            _newParameterName = string.Empty;
+            GUIUtility.keyboardControl = 0;
+            EditorGUIUtility.keyboardControl = 0;
+
+            // Run after rename Function
+            _runAfterRenameFunction?.Invoke();
         }
 
         private void CollectAnimatorObjects(AnimatorController animator, ref HashSet<Object> affected) {
